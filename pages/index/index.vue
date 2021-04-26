@@ -3,6 +3,7 @@
 		<image class="logo" src="/static/logo.png"></image>
 		<view class="text-area">
 			<text class="title">{{title}}</text>
+			<button @tap="login">登陆</button>
 		</view>
 	</view>
 </template>
@@ -11,14 +12,25 @@
 	export default {
 		data() {
 			return {
-				title: 'Hello'
+				title: 'Hello',
 			}
 		},
 		onLoad() {
-			this.esa.test()
+			var that = this;
+			this.esa.request({
+				url:"api.index/index",
+				loading:false
+			},function(data,res){
+				console.log(res)
+				that.title = res.msg
+				return false;
+			})
+			
 		},
 		methods: {
-
+			login:function(){
+				this.esa.getUserInfo();
+			}
 		}
 	}
 </script>
