@@ -1,0 +1,6 @@
+{
+	"debug"	: true,
+	"url"	: "https://www.baidu.com",
+	"pfid"	: 2,
+	"addon"	: "test_test"
+}
