@@ -9,8 +9,8 @@ static/config.json 配置文件
 
 ### 添加
 
-1.将esa/目录复制放置项目目录的根目录
-2.创建或复制static/config.json文件至项目的static/文件夹中
+1. 将esa/目录复制放置项目目录的根目录
+2. 创建或复制static/config.json文件至项目的static/文件夹中
 
 ### 引用
 
