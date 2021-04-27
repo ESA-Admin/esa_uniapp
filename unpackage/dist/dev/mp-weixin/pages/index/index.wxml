@@ -1,1 +1,0 @@
-<view class="content"><image class="logo" src="/static/logo.png"></image><view class="text-area title">{{''+(userInfo.nickname?userInfo.nickname:'')+''}}</view><block wx:if="{{!userInfo}}"><view class="text-area"><button data-event-opts="{{[['tap',[['login',['$event']]]]]}}" bindtap="__e">登陆</button></view></block></view>
