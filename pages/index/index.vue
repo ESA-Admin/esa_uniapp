@@ -21,7 +21,7 @@
 				url:"api.index/index",
 				loading:false
 			},function(data,res){
-				console.log(res)
+				// console.log(res)
 				that.title = res.msg
 				return false;
 			})
