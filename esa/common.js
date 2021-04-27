@@ -1,9 +1,6 @@
 import config from '@/static/config.json'
 
 var esa = {
-	test:function(){
-		console.log(config)
-	},
 	url:function(action){
 		if(action.indexOf("/") === 0){
 			return config.url+action+".html?PLATFORM_ID="+config.pfid;
@@ -35,7 +32,10 @@ var esa = {
 				}
 				var data = typeof res.data !== "undefined" ? res.data : null;
 				var msg = typeof res.msg !== "undefined" && res.msg ? res.msg : "";
-				if (res.code === 0) {
+				if (res.code === 10004 && uni.getStorageSync("wxappUserInfo")){
+					// 需要登录
+					esa.login(function(){},uni.getStorageSync("wxappUserInfo"));
+				} else if (res.code === 0) {
 					if (typeof success === 'function') {
 						var result = success.call(this, data, res);
 						if (result === false)
@@ -75,10 +75,10 @@ var esa = {
 			method	: "POST",
 			loading	: false,
 		},function(d){
-			success.call(d);
+			success.call(this,d);
 			return false;
 		},function(e){
-			error.call(e);
+			error.call(this,e);
 			return false;
 		})
 	},
@@ -92,7 +92,7 @@ var esa = {
 			console.log(d);
 			uni.setStorageSync('__TOKEN__', d.token);
 			uni.setStorageSync('ESA_USER',d);
-			callback.call(d);
+			callback.call(this,d);
 			return false;
 		})
 	},
@@ -108,12 +108,20 @@ var esa = {
 			method	: "POST",
 			data	: userInfo,
 		},function(d){
+			d.wxappUserInfo = wxappUserInfo.userInfo;
 			uni.setStorageSync("ESA_USER",d);
 			typeof callback == "function" && callback.call(this,d);
+			return false;
 		})
 	},
-	login:function(callback,wxappUserInfo){
+	login:function(callback,wxappUserInfo,secound=false){
 		console.log("开始登陆");
+		// var loginTime = uni.getStorageInfoSync("loginTime")
+		// if(loginTime && loginTime > new Date().getTime()){
+		// 	return true;
+		// }else{
+		// 	uni.setStorageSync("loginTime",new Date().getTime() + 60000);
+		// }
 		uni.login({
 			success:function(res){
 				console.log("微信登陆开始！",res)
@@ -121,59 +129,41 @@ var esa = {
 					console.log("获取ESA会员成功");
 					if(wxappUserInfo){
 						esa.upgradeUser(wxappUserInfo,function(userInfo){
-							callback.call(userInfo)
+							callback.call(this,userInfo)
 						})
 					}else{
-						uni.authorize({
-							scope:"scope.userProfile",
-							success:function(){
-								console.log("授权检测成功");
-								uni.showModal({
-									title	: "登陆",
-									content	: "请允许授权来提供相关服务",
-									showCancel	: false,
-									success	:function(){
-										uni.getUserProfile({
-											desc:"登陆",
-											lang:"zh",
-											success:function(res){
-												console.log("用户信息授权成功")
-												uni.setStorageSync("wxappUserInfo",res.userInfo);
-												esa.upgradeUser(res,function(userInfo){
-													typeof callback == "function" && callback.call(this,userInfo);
-												})
-											},
-											fail:function(err){
-												console.log("用户信息授权失败")
+						uni.showModal({
+							title	: secound ? "是否重新授权" : "登陆",
+							content	: secound ? "拒绝授权容易出现相关功能不完整。" : "请允许授权来提供相关服务。",
+							showCancel	: secound,
+							success	:function(param){
+								if(param.confirm){
+									uni.getUserProfile({
+										desc:"登陆",
+										lang:"zh",
+										success:function(res){
+											console.log("用户信息授权成功")
+											uni.setStorageSync("wxappUserInfo",res.userInfo);
+											esa.upgradeUser(res,function(userInfo){
 												typeof callback == "function" && callback.call(this,userInfo);
-											}
-										})
-									}
-								})
-							},
-							fail:function(){
-								console.log("自动读取授权失败,开始弹出授权处理");
-								uni.showModal({
-									title	: "登陆",
-									content	: "请允许授权来提供相关服务",
-									showCancel	: false,
-									success	:function(){
-										uni.getUserProfile({
-											desc:"登陆",
-											lang:"zh",
-											success:function(res){
-												console.log("用户信息授权成功",res)
-												esa.upgradeUser(res,function(userInfo){
-													typeof callback == "function" && callback.call(this,userInfo);
-												})
-											},
-											fail:function(err){
-												console.log("用户信息授权失败",err)
+											})
+										},
+										fail:function(err){
+											console.log("用户信息授权失败")
+											if(secound){
 												typeof callback == "function" && callback.call(this,userInfo);
+											}else{
+												esa.login(callback,wxappUserInfo,true)
 											}
-										})
-									}
-								})
+											
+										}
+									})
+								}
+								if(param.cancel){
+									// 点击取消，未授权用户信息
+									uni.setStorageSync("wxappUserInfo",true)
+									typeof callback == "function" && callback.call(this,userInfo);
+								}
 							}
 						})
 					}
@@ -187,20 +177,21 @@ var esa = {
 		if(!token){
 			// 用户信息不存在，登陆
 			console.log("Token不存在");
-			esa.login();
+			esa.login(callback,wxappUserInfo);
 		}else{
 			console.log("Token存在");
-			
-			esa.checkToken(function(){
+			esa.checkToken(function(userInfo){
 				if(wxappUserInfo){
 					esa.updateUser(wxappUserInfo,function(userInfo){
 						if(typeof callback === "function") callback.call(this,userInfo);
 					});
+				}else if(!uni.getStorageSync("wxappUserInfo")){
+					esa.login(callback,wxappUserInfo);
 				}else{
 					if(typeof callback === "function") callback.call(this,userInfo);
 				}
 			},function(){
-				esa.login();
+				esa.login(callback,wxappUserInfo);
 			})
 		}
 	}
