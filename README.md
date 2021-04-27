@@ -26,3 +26,4 @@ Vue.prototype.esa = esa
 ```
 this.esa.test();
 ```
+
